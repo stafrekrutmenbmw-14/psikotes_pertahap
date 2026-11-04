@@ -2,7 +2,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 import time
 
-def show_live_timer_se(seconds_remaining):
+def show_live_timer_se(seconds_remaining, email, nama, posisi, next_subtest):
+    target_page = "result" if next_subtest >= 4 else "test"
     components.html(f"""
     <div style="font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; color: #d9534f; 
                 background-color: #fdf7f7; padding: 10px 15px; border: 2px solid #d9534f; 
@@ -20,13 +21,14 @@ def show_live_timer_se(seconds_remaining):
             if (elem) {{ elem.innerHTML = displayM + ":" + displayS; }}
             if (timeLeft <= 0) {{ 
                 if (elem) elem.innerHTML = "00:00 (WAKTU HABIS)"; 
-                var buttons = window.parent.document.querySelectorAll('button');
-                for (var i = 0; i < buttons.length; i++) {{
-                    if (buttons[i].innerText.includes('Simpan') || buttons[i].innerText.includes('Lanjut')) {{
-                        buttons[i].click();
-                        break;
+                var url = "?page={target_page}&subtest={next_subtest}&email=" + encodeURIComponent("{email}") + "&nama=" + encodeURIComponent("{nama}") + "&posisi=" + encodeURIComponent("{posisi}");
+                setTimeout(function() {{
+                    try {{
+                        window.top.location.search = url;
+                    }} catch(e) {{
+                        window.location.search = url;
                     }}
-                }}
+                }}, 500);
             }} else {{ 
                 timeLeft--; 
             }}
@@ -41,6 +43,11 @@ def render_subtest_1_se():
         st.session_state.step_se = "instruction"
     if "answers" not in st.session_state:
         st.session_state.answers = {}
+
+    user_info = st.session_state.get("user_info", {})
+    email = user_info.get("email", "")
+    nama = user_info.get("nama", "")
+    posisi = user_info.get("posisi", "")
 
     if st.session_state.step_se == "instruction":
         st.title("📑 Petunjuk Subtes 01: SE (Melengkapi Kalimat)")
@@ -74,7 +81,7 @@ def render_subtest_1_se():
         
         elapsed = int(time.time() - st.session_state.start_time_se)
         remaining = max(0, 360 - elapsed)
-        show_live_timer_se(remaining)
+        show_live_timer_se(remaining, email, nama, posisi, 2)
 
         if remaining <= 0:
             st.warning("⏰ Waktu Subtes 1 telah habis! Mengalihkan ke Subtes 2...")
@@ -83,6 +90,7 @@ def render_subtest_1_se():
                     st.session_state.answers[q_id] = st.session_state[f"se_{q_id}"]
             time.sleep(1)
             st.session_state.current_subtest = 2
+            st.query_params["subtest"] = "2"
             st.rerun()
 
         questions_se = [
@@ -108,14 +116,14 @@ def render_subtest_1_se():
             {"id": 20, "no": "20", "q": "Seorang anak yang berumur 10 tahun tingginya rata-rata ..... cm", "opts": ["a) 150", "b) 130", "c) 110", "d) 105", "e) 115"]}
         ]
 
-        # Tanpa st.form agar jawaban tersimpan real-time
         for q in questions_se:
             st.markdown(f"**Soal {q['no']}.** {q['q']}")
-            st.radio(
+            ans = st.radio(
                 f"Pilih Jawaban No. {q['no']}:",
                 options=q['opts'],
                 key=f"se_{q['id']}"
             )
+            st.session_state.answers[q['id']] = ans
             st.markdown("---")
 
         if st.button("Simpan & Lanjut ke Subtes 2 (WA) ➔", type="primary"):
@@ -123,4 +131,5 @@ def render_subtest_1_se():
                 if f"se_{q_id}" in st.session_state:
                     st.session_state.answers[q_id] = st.session_state[f"se_{q_id}"]
             st.session_state.current_subtest = 2
+            st.query_params["subtest"] = "2"
             st.rerun()
