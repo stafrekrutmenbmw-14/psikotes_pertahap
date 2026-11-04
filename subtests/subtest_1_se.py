@@ -20,7 +20,13 @@ def show_live_timer_se(seconds_remaining):
             if (elem) {{ elem.innerHTML = displayM + ":" + displayS; }}
             if (timeLeft <= 0) {{ 
                 if (elem) elem.innerHTML = "00:00 (WAKTU HABIS)"; 
-                setTimeout(function() {{ window.parent.location.reload(); }}, 1000);
+                var buttons = window.parent.document.querySelectorAll('button');
+                for (var i = 0; i < buttons.length; i++) {{
+                    if (buttons[i].innerText.includes('Simpan') || buttons[i].innerText.includes('Lanjut')) {{
+                        buttons[i].click();
+                        break;
+                    }}
+                }}
             }} else {{ 
                 timeLeft--; 
             }}
@@ -102,19 +108,19 @@ def render_subtest_1_se():
             {"id": 20, "no": "20", "q": "Seorang anak yang berumur 10 tahun tingginya rata-rata ..... cm", "opts": ["a) 150", "b) 130", "c) 110", "d) 105", "e) 115"]}
         ]
 
-        with st.form("form_subtest_1"):
-            for q in questions_se:
-                st.markdown(f"**Soal {q['no']}.** {q['q']}")
-                st.session_state.answers[q['id']] = st.radio(
-                    f"Pilih Jawaban No. {q['no']}:",
-                    options=q['opts'],
-                    key=f"se_{q['id']}"
-                )
-                st.markdown("---")
+        # Tanpa st.form agar jawaban tersimpan real-time
+        for q in questions_se:
+            st.markdown(f"**Soal {q['no']}.** {q['q']}")
+            st.radio(
+                f"Pilih Jawaban No. {q['no']}:",
+                options=q['opts'],
+                key=f"se_{q['id']}"
+            )
+            st.markdown("---")
 
-            if st.form_submit_button("Simpan & Lanjut ke Subtes 2 (WA) ➔"):
-                for q_id in range(1, 21):
-                    if f"se_{q_id}" in st.session_state:
-                        st.session_state.answers[q_id] = st.session_state[f"se_{q_id}"]
-                st.session_state.current_subtest = 2
-                st.rerun()
+        if st.button("Simpan & Lanjut ke Subtes 2 (WA) ➔", type="primary"):
+            for q_id in range(1, 21):
+                if f"se_{q_id}" in st.session_state:
+                    st.session_state.answers[q_id] = st.session_state[f"se_{q_id}"]
+            st.session_state.current_subtest = 2
+            st.rerun()
