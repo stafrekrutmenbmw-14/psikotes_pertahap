@@ -2,7 +2,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 import time
 
-def show_live_timer_wa(seconds_remaining):
+def show_live_timer_wa(seconds_remaining, email, nama, posisi, next_subtest):
+    target_page = "result" if next_subtest >= 4 else "test"
     components.html(f"""
     <div style="font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; color: #d9534f; 
                 background-color: #fdf7f7; padding: 10px 15px; border: 2px solid #d9534f; 
@@ -20,13 +21,14 @@ def show_live_timer_wa(seconds_remaining):
             if (elem) {{ elem.innerHTML = displayM + ":" + displayS; }}
             if (timeLeft <= 0) {{ 
                 if (elem) elem.innerHTML = "00:00 (WAKTU HABIS)"; 
-                var buttons = window.parent.document.querySelectorAll('button');
-                for (var i = 0; i < buttons.length; i++) {{
-                    if (buttons[i].innerText.includes('Simpan') || buttons[i].innerText.includes('Lanjut')) {{
-                        buttons[i].click();
-                        break;
+                var url = "?page={target_page}&subtest={next_subtest}&email=" + encodeURIComponent("{email}") + "&nama=" + encodeURIComponent("{nama}") + "&posisi=" + encodeURIComponent("{posisi}");
+                setTimeout(function() {{
+                    try {{
+                        window.top.location.search = url;
+                    }} catch(e) {{
+                        window.location.search = url;
                     }}
-                }}
+                }}, 500);
             }} else {{ 
                 timeLeft--; 
             }}
@@ -41,6 +43,11 @@ def render_subtest_2_wa():
         st.session_state.step_wa = "instruction"
     if "answers" not in st.session_state:
         st.session_state.answers = {}
+
+    user_info = st.session_state.get("user_info", {})
+    email = user_info.get("email", "")
+    nama = user_info.get("nama", "")
+    posisi = user_info.get("posisi", "")
 
     if st.session_state.step_wa == "instruction":
         st.title("📑 Petunjuk Subtes 02: WA (Mencari Kata Berbeda)")
@@ -72,7 +79,7 @@ def render_subtest_2_wa():
         
         elapsed = int(time.time() - st.session_state.start_time_wa)
         remaining = max(0, 360 - elapsed)
-        show_live_timer_wa(remaining)
+        show_live_timer_wa(remaining, email, nama, posisi, 3)
 
         if remaining <= 0:
             st.warning("⏰ Waktu Subtes 2 telah habis! Mengalihkan ke Subtes 3...")
@@ -81,6 +88,7 @@ def render_subtest_2_wa():
                     st.session_state.answers[q_id] = st.session_state[f"wa_{q_id}"]
             time.sleep(1)
             st.session_state.current_subtest = 3
+            st.query_params["subtest"] = "3"
             st.rerun()
 
         questions_wa = [
@@ -108,11 +116,12 @@ def render_subtest_2_wa():
 
         for q in questions_wa:
             st.markdown(f"**Soal {q['no']}.** Pilih kata yang paling berbeda:")
-            st.radio(
+            ans = st.radio(
                 f"Pilihan Jawaban No. {q['no']}:",
                 options=q['opts'],
                 key=f"wa_{q['id']}"
             )
+            st.session_state.answers[q['id']] = ans
             st.markdown("---")
 
         if st.button("Simpan & Lanjut ke Subtes 3 (AN) ➔", type="primary"):
@@ -120,4 +129,5 @@ def render_subtest_2_wa():
                 if f"wa_{q_id}" in st.session_state:
                     st.session_state.answers[q_id] = st.session_state[f"wa_{q_id}"]
             st.session_state.current_subtest = 3
+            st.query_params["subtest"] = "3"
             st.rerun()
