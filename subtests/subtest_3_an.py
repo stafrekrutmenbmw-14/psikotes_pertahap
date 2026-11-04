@@ -20,7 +20,13 @@ def show_live_timer_an(seconds_remaining):
             if (elem) {{ elem.innerHTML = displayM + ":" + displayS; }}
             if (timeLeft <= 0) {{ 
                 if (elem) elem.innerHTML = "00:00 (WAKTU HABIS)"; 
-                setTimeout(function() {{ window.parent.location.reload(); }}, 1000);
+                var buttons = window.parent.document.querySelectorAll('button');
+                for (var i = 0; i < buttons.length; i++) {{
+                    if (buttons[i].innerText.includes('Simpan') || buttons[i].innerText.includes('Selesaikan')) {{
+                        buttons[i].click();
+                        break;
+                    }}
+                }}
             }} else {{ 
                 timeLeft--; 
             }}
@@ -102,19 +108,18 @@ def render_subtest_3_an():
             {"id": 60, "no": "60", "q": "Keledai : kuda pacuan = Pembakaran : ?", "opts": ["a) pemadam api", "b) obor", "c) letupan", "d) korek api", "e) lautan api"]}
         ]
 
-        with st.form("form_subtest_3"):
-            for q in questions_an:
-                st.markdown(f"**Soal {q['no']}.** {q['q']}")
-                st.session_state.answers[q['id']] = st.radio(
-                    f"Pilih Jawaban No. {q['no']}:",
-                    options=q['opts'],
-                    key=f"an_{q['id']}"
-                )
-                st.markdown("---")
+        for q in questions_an:
+            st.markdown(f"**Soal {q['no']}.** {q['q']}")
+            st.radio(
+                f"Pilih Jawaban No. {q['no']}:",
+                options=q['opts'],
+                key=f"an_{q['id']}"
+            )
+            st.markdown("---")
 
-            if st.form_submit_button("Simpan & Selesaikan Bagian 1 🏁"):
-                for q_id in range(41, 61):
-                    if f"an_{q_id}" in st.session_state:
-                        st.session_state.answers[q_id] = st.session_state[f"an_{q_id}"]
-                st.session_state.page = "result"
-                st.rerun()
+        if st.button("Simpan & Selesaikan Bagian 1 🏁", type="primary"):
+            for q_id in range(41, 61):
+                if f"an_{q_id}" in st.session_state:
+                    st.session_state.answers[q_id] = st.session_state[f"an_{q_id}"]
+            st.session_state.page = "result"
+            st.rerun()
