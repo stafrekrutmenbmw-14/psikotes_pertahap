@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import json
 from datetime import datetime
 
 # Impor modul Subtes 1, 2, dan 3
@@ -17,6 +18,37 @@ st.set_page_config(
 
 RESULTS_FILE = "rekap_ist_bagian1.csv"
 ADMIN_PASSWORD = "adminbmw"
+
+# --- HELPER SIMPAN & BACA DISK SEMENTARA ---
+def save_temp_answers(email, user_info, answers):
+    if not email:
+        return
+    safe_id = "".join(c for c in email if c.isalnum())
+    filename = f"temp_{safe_id}.json"
+    data = {
+        "user_info": user_info,
+        "answers": {str(k): v for k, v in answers.items()}
+    }
+    try:
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
+
+def load_temp_answers(email):
+    if not email:
+        return {}, {}
+    safe_id = "".join(c for c in email if c.isalnum())
+    filename = f"temp_{safe_id}.json"
+    if os.path.exists(filename):
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                answers = {int(k): v for k, v in data.get("answers", {}).items()}
+                return data.get("user_info", {}), answers
+        except Exception:
+            pass
+    return {}, {}
 
 @st.cache_data(ttl=5)
 def load_results_data(file_path):
@@ -60,14 +92,13 @@ def calculate_scores():
         "Total_Raw_Score_Bagian1": total_raw
     }
 
-# --- SIDEBAR NAVIGASI SISTEM ---
-st.sidebar.title("📌 Navigasi Sistem")
-mode = st.sidebar.radio("Pilih Akses:", ["Portal Tes Pelamar", "Dashboard Admin HRD"])
+# --- INISIALISASI DENGAN URL PARAMS & SESI ---
+params = st.query_params
 
 if "page" not in st.session_state:
-    st.session_state.page = "register"
+    st.session_state.page = params.get("page", "register")
 if "current_subtest" not in st.session_state:
-    st.session_state.current_subtest = 1
+    st.session_state.current_subtest = int(params.get("subtest", "1"))
 if "user_info" not in st.session_state:
     st.session_state.user_info = {}
 if "answers" not in st.session_state:
@@ -76,6 +107,26 @@ if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 if "saved" not in st.session_state:
     st.session_state.saved = False
+
+# Sinkronkan data dari URL & disk jika ter-refresh
+param_email = params.get("email", "")
+if param_email:
+    saved_info, saved_answers = load_temp_answers(param_email)
+    if saved_info:
+        st.session_state.user_info.update(saved_info)
+    if saved_answers:
+        for k, v in saved_answers.items():
+            if k not in st.session_state.answers:
+                st.session_state.answers[k] = v
+
+if params.get("page"):
+    st.session_state.page = params.get("page")
+if params.get("subtest"):
+    st.session_state.current_subtest = int(params.get("subtest"))
+
+# --- SIDEBAR NAVIGASI SISTEM ---
+st.sidebar.title("📌 Navigasi Sistem")
+mode = st.sidebar.radio("Pilih Akses:", ["Portal Tes Pelamar", "Dashboard Admin HRD"])
 
 if mode == "Portal Tes Pelamar":
     if st.session_state.page == "register":
@@ -104,6 +155,14 @@ if mode == "Portal Tes Pelamar":
                     }
                     st.session_state.page = "test"
                     st.session_state.current_subtest = 1
+                    
+                    st.query_params["page"] = "test"
+                    st.query_params["subtest"] = "1"
+                    st.query_params["email"] = email
+                    st.query_params["nama"] = nama
+                    st.query_params["posisi"] = posisi
+                    
+                    save_temp_answers(email, st.session_state.user_info, st.session_state.answers)
                     st.rerun()
 
     elif st.session_state.page == "test":
@@ -113,6 +172,10 @@ if mode == "Portal Tes Pelamar":
         )
         st.markdown("---")
 
+        # Otomatis backup jawaban ke disk setiap kali halaman di-render
+        if st.session_state.user_info.get("email"):
+            save_temp_answers(st.session_state.user_info["email"], st.session_state.user_info, st.session_state.answers)
+
         if st.session_state.current_subtest == 1:
             render_subtest_1_se()
         elif st.session_state.current_subtest == 2:
@@ -121,6 +184,7 @@ if mode == "Portal Tes Pelamar":
             render_subtest_3_an()
         elif st.session_state.current_subtest >= 4:
             st.session_state.page = "result"
+            st.query_params["page"] = "result"
             st.rerun()
 
     elif st.session_state.page == "result":
