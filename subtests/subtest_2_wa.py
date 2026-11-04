@@ -20,7 +20,13 @@ def show_live_timer_wa(seconds_remaining):
             if (elem) {{ elem.innerHTML = displayM + ":" + displayS; }}
             if (timeLeft <= 0) {{ 
                 if (elem) elem.innerHTML = "00:00 (WAKTU HABIS)"; 
-                setTimeout(function() {{ window.parent.location.reload(); }}, 1000);
+                var buttons = window.parent.document.querySelectorAll('button');
+                for (var i = 0; i < buttons.length; i++) {{
+                    if (buttons[i].innerText.includes('Simpan') || buttons[i].innerText.includes('Lanjut')) {{
+                        buttons[i].click();
+                        break;
+                    }}
+                }}
             }} else {{ 
                 timeLeft--; 
             }}
@@ -100,19 +106,18 @@ def render_subtest_2_wa():
             {"id": 40, "no": "40", "opts": ["a) batu", "b) baja", "c) bulu", "d) karet", "e) kayu"]}
         ]
 
-        with st.form("form_subtest_2"):
-            for q in questions_wa:
-                st.markdown(f"**Soal {q['no']}.** Pilih kata yang paling berbeda:")
-                st.session_state.answers[q['id']] = st.radio(
-                    f"Pilihan Jawaban No. {q['no']}:",
-                    options=q['opts'],
-                    key=f"wa_{q['id']}"
-                )
-                st.markdown("---")
+        for q in questions_wa:
+            st.markdown(f"**Soal {q['no']}.** Pilih kata yang paling berbeda:")
+            st.radio(
+                f"Pilihan Jawaban No. {q['no']}:",
+                options=q['opts'],
+                key=f"wa_{q['id']}"
+            )
+            st.markdown("---")
 
-            if st.form_submit_button("Simpan & Lanjut ke Subtes 3 (AN) ➔"):
-                for q_id in range(21, 41):
-                    if f"wa_{q_id}" in st.session_state:
-                        st.session_state.answers[q_id] = st.session_state[f"wa_{q_id}"]
-                st.session_state.current_subtest = 3
-                st.rerun()
+        if st.button("Simpan & Lanjut ke Subtes 3 (AN) ➔", type="primary"):
+            for q_id in range(21, 41):
+                if f"wa_{q_id}" in st.session_state:
+                    st.session_state.answers[q_id] = st.session_state[f"wa_{q_id}"]
+            st.session_state.current_subtest = 3
+            st.rerun()
