@@ -18,7 +18,6 @@ st.set_page_config(
 RESULTS_FILE = "rekap_ist_bagian1.csv"
 ADMIN_PASSWORD = "adminbmw"
 
-# Caching pembacaan CSV agar pemuatan dashboard super cepat & ringan
 @st.cache_data(ttl=5)
 def load_results_data(file_path):
     if os.path.exists(file_path):
