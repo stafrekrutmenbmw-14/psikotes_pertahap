@@ -2,7 +2,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 import time
 
-def show_live_timer_an(seconds_remaining):
+def show_live_timer_an(seconds_remaining, email, nama, posisi, next_subtest):
+    target_page = "result" if next_subtest >= 4 else "test"
     components.html(f"""
     <div style="font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; color: #d9534f; 
                 background-color: #fdf7f7; padding: 10px 15px; border: 2px solid #d9534f; 
@@ -20,13 +21,14 @@ def show_live_timer_an(seconds_remaining):
             if (elem) {{ elem.innerHTML = displayM + ":" + displayS; }}
             if (timeLeft <= 0) {{ 
                 if (elem) elem.innerHTML = "00:00 (WAKTU HABIS)"; 
-                var buttons = window.parent.document.querySelectorAll('button');
-                for (var i = 0; i < buttons.length; i++) {{
-                    if (buttons[i].innerText.includes('Simpan') || buttons[i].innerText.includes('Selesaikan')) {{
-                        buttons[i].click();
-                        break;
+                var url = "?page={target_page}&subtest={next_subtest}&email=" + encodeURIComponent("{email}") + "&nama=" + encodeURIComponent("{nama}") + "&posisi=" + encodeURIComponent("{posisi}");
+                setTimeout(function() {{
+                    try {{
+                        window.top.location.search = url;
+                    }} catch(e) {{
+                        window.location.search = url;
                     }}
-                }}
+                }}, 500);
             }} else {{ 
                 timeLeft--; 
             }}
@@ -41,6 +43,11 @@ def render_subtest_3_an():
         st.session_state.step_an = "instruction"
     if "answers" not in st.session_state:
         st.session_state.answers = {}
+
+    user_info = st.session_state.get("user_info", {})
+    email = user_info.get("email", "")
+    nama = user_info.get("nama", "")
+    posisi = user_info.get("posisi", "")
 
     if st.session_state.step_an == "instruction":
         st.title("📑 Petunjuk Subtes 03: AN (Hubungan Kata / Analogi)")
@@ -74,7 +81,7 @@ def render_subtest_3_an():
         
         elapsed = int(time.time() - st.session_state.start_time_an)
         remaining = max(0, 420 - elapsed)
-        show_live_timer_an(remaining)
+        show_live_timer_an(remaining, email, nama, posisi, 4)
 
         if remaining <= 0:
             st.warning("⏰ Waktu Subtes 3 telah habis! Menyimpan jawaban dan mengalihkan ke Hasil Ujian Bagian 1...")
@@ -83,6 +90,7 @@ def render_subtest_3_an():
                     st.session_state.answers[q_id] = st.session_state[f"an_{q_id}"]
             time.sleep(1)
             st.session_state.page = "result"
+            st.query_params["page"] = "result"
             st.rerun()
 
         questions_an = [
@@ -110,11 +118,12 @@ def render_subtest_3_an():
 
         for q in questions_an:
             st.markdown(f"**Soal {q['no']}.** {q['q']}")
-            st.radio(
+            ans = st.radio(
                 f"Pilih Jawaban No. {q['no']}:",
                 options=q['opts'],
                 key=f"an_{q['id']}"
             )
+            st.session_state.answers[q['id']] = ans
             st.markdown("---")
 
         if st.button("Simpan & Selesaikan Bagian 1 🏁", type="primary"):
@@ -122,4 +131,5 @@ def render_subtest_3_an():
                 if f"an_{q_id}" in st.session_state:
                     st.session_state.answers[q_id] = st.session_state[f"an_{q_id}"]
             st.session_state.page = "result"
+            st.query_params["page"] = "result"
             st.rerun()
